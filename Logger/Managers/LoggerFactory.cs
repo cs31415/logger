@@ -10,15 +10,14 @@ namespace Logger.Managers
     public class LoggerFactory : ILoggerFactory
     {
         readonly Dictionary<string, ILog> _loggers;
-        private readonly string _application;
-        private readonly string _applicationVersion;
-        private readonly string _environment;
+        public static string Application { get; private set; }
+        public static string ApplicationVersion { get; private set; }
+        public static string  Environment { get; private set; }
+        public static string  AccessLogName { get; private set; }
+        public static ILoggerFactory Instance { get; private set; }
 
-        public LoggerFactory(string [] loggerTypes, string application, string applicationVersion, string environment)
+        private LoggerFactory(string [] loggerTypes)
         {
-            _application = application;
-            _applicationVersion = applicationVersion;
-            _environment = environment;
             _loggers = new Dictionary<string, ILog>();
             log4net.Config.XmlConfigurator.Configure();
             foreach (var loggerType in loggerTypes)
@@ -27,6 +26,20 @@ namespace Logger.Managers
             }    
         }
 
+        public static ILoggerFactory GetLoggerFactoryInstance(string [] loggerTypes, string application, string applicationVersion, string environment, string accessLogName)
+        { 
+            if (Instance == null)
+            {
+                Application = application;
+                ApplicationVersion = applicationVersion;
+                Environment = environment;
+                AccessLogName = accessLogName;
+                Instance = new LoggerFactory(loggerTypes);
+            }
+
+            return Instance;
+        }
+        
         public ILogger GetLogger(string type)
         {
             var logger = _loggers[type];
@@ -35,12 +48,12 @@ namespace Logger.Managers
         
         public ILogRecordBuilder GetLogRecordBuilder()
         {
-            return new LogRecordBuilder(_application, _applicationVersion, _environment);
+            return new LogRecordBuilder(Application, ApplicationVersion, Environment);
         }
         
         public IAccessLogRecordBuilder GetAccessLogRecordBuilder()
         {
-            return new AccessLogRecordBuilder(_application, _applicationVersion, _environment);
+            return new AccessLogRecordBuilder(Application, ApplicationVersion, Environment);
         }
     }
 }

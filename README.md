@@ -86,10 +86,41 @@ catch (Exception e)
 
 ## Access Logging Usage
 
-Access logging is handled using a delegating handler. Add this to your WebApiConfig.Register method:
+Access logging is handled using an http module. Add this to your web.config:
+```
+	<system.webServer>
+      <modules>
+        <add name="AccessLoggingModule" type="Logger.Middleware.AccessLoggingModule, Logger" />
+    </modules>
+```
+Add the following to global.asax.cs to setup unhandled exception logging and to filter access logging requests (to filter out health checks for example):
 ```C#
-    ILoggerFactory loggerFactory = (ILoggerFactory)GlobalConfiguration.Configuration.DependencyResolver.GetService(typeof(ILoggerFactory));
-        
-    var requestLogger = new AccessLoggingHandler(loggerFactory, LoggerTypes.AccessLog.ToString());
-    config.MessageHandlers.Add(requestLogger);    
+	public class WebApiApplication : System.Web.HttpApplication
+    {
+        protected void Application_Start()
+        {
+            UnityConfig.RegisterComponents();
+            GlobalConfiguration.Configure(WebApiConfig.Register);
+            
+            // Setup unhandled error logging & filter
+            var accessLoggingModule = HttpContext.Current.ApplicationInstance.Modules.Get("AccessLoggingModule") as AccessLoggingModule;
+            if (accessLoggingModule != null)
+            {
+                accessLoggingModule.LogUnhandledError = LogUnhandledError;
+                accessLoggingModule.Filter = Filter;
+            }
+        }
+
+        private void LogUnhandledError(Exception ex, string correlationId)
+        {
+            var structuredLogHelper =
+                GlobalConfiguration.Configuration.DependencyResolver.GetService(typeof(IStructuredLogHelper)) as IStructuredLogHelper;
+            structuredLogHelper?.LogError(ex, correlationId);
+        }
+
+        private bool Filter(HttpRequest request)
+        {
+            return request.Url.AbsolutePath.Contains("/health");
+        }
+    }    
 ```

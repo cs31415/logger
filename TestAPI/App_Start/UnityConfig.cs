@@ -1,3 +1,5 @@
+using System;
+using System.Web;
 using System.Web.Http;
 using Logger.Managers;
 using TestApi;
@@ -24,7 +26,7 @@ namespace TestAPI
             var applicationVersion = "1.0";
             var environment = "Dev";
 
-            var loggerFactory = new LoggerFactory(System.Enum.GetNames(typeof(LoggerTypes)), application,applicationVersion, environment);
+            var loggerFactory = LoggerFactory.GetLoggerFactoryInstance(System.Enum.GetNames(typeof(LoggerTypes)), application,applicationVersion, environment, LoggerTypes.AccessLog.ToString());
             container.RegisterInstance<ILoggerFactory>(loggerFactory, InstanceLifetime.Singleton);
             container.RegisterInstance<IApplicationLogRecordBuilder>(new ApplicationLogRecordBuilder(application, applicationVersion, environment));
             container.RegisterType<IStructuredLogHelper, StructuredLogHelper>();

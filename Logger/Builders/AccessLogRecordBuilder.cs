@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Web;
 using Logger.Models;
 
 namespace Logger.Builders
@@ -35,6 +37,21 @@ namespace Logger.Builders
             };
             return accessLogRecord;
         }
+        
+        public AccessLogRecord Build(string message, HttpRequest request, HttpResponse response, long responseTimeMs, string correlationId)
+        {
+            var logRecord = _logRecordBuilder.Build(LogLevel.Info, message, correlationId);
+            var accessLogRecord = new AccessLogRecord(logRecord)
+            {
+                Url = request.Url.AbsoluteUri,
+                StatusCode = response.StatusCode.ToString(),
+                Method = request.HttpMethod,
+                RequestHeaders = ReduceHeaders(request.Headers),
+                ResponseHeaders = ReduceHeaders(response.Headers),
+                ResponseTimeMs = responseTimeMs
+            };
+            return accessLogRecord;
+        }
 
         private string ReduceHeaders(HttpHeaders headers)
         {
@@ -44,6 +61,16 @@ namespace Logger.Builders
             }
             // Filter any headers here if required
             return Aggregate(headers?.Select(h => $"{h.Key}:{Aggregate(h.Value)}"));
+        }
+        
+        private string ReduceHeaders(NameValueCollection headers)
+        {
+            if (headers?.Count == 0)
+            {
+                return string.Empty;
+            }
+            // Filter any headers here if required
+            return Aggregate(headers?.AllKeys.Select(k => $"{k}:{headers.Get(k)}"));
         }
 
         private string Aggregate(IEnumerable<string> values)

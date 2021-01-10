@@ -1,7 +1,4 @@
 ﻿using System.Web.Http;
-using logger.Middleware;
-using Logger.Managers;
-using TestApi;
 
 namespace TestAPI
 {
@@ -19,10 +16,6 @@ namespace TestAPI
                 routeTemplate: "api/{controller}/{id}",
                 defaults: new { id = RouteParameter.Optional }
             );
-
-            ILoggerFactory loggerFactory = (ILoggerFactory)GlobalConfiguration.Configuration.DependencyResolver.GetService(typeof(ILoggerFactory));
-            var requestLogger = new AccessLoggingHandler(loggerFactory, LoggerTypes.AccessLog.ToString());
-            config.MessageHandlers.Add(requestLogger);
         }
     }
 }
