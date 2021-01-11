@@ -53,5 +53,11 @@ namespace TestApi.Helpers
             var logRecord = _logRecordBuilder.Build(ex, correlationId);
             _logger.LogError(logRecord);
         }
+
+        public void LogError(string message, string correlationId)
+        {
+            var logRecord = _logRecordBuilder.Build(LogLevel.Error, message, correlationId);
+            _logger.LogError(logRecord);
+        }
     }
 }

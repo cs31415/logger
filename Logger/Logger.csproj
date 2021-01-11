@@ -59,6 +59,7 @@
     <Compile Include="Managers\ILoggerFactory.cs" />
     <Compile Include="Managers\LoggerFactory.cs" />
     <Compile Include="Middleware\AccessLoggingModule.cs" />
+    <Compile Include="Middleware\ExceptionLoggingHandler.cs" />
     <Compile Include="Models\AccessLogRecord.cs" />
     <Compile Include="Models\LogLevel.cs" />
     <Compile Include="Models\LogRecord.cs" />

@@ -6,6 +6,7 @@ namespace TestApi.Helpers
     {
         void LogInfo(int rnd, string message, string correlationId);
         void LogError(Exception ex, string correlationId);
+        void LogError(string message, string correlationId);
         void LogInfo(object logRecord);
         void LogInfo(string message, string correlationId);
         void LogDebug(object logRecord);

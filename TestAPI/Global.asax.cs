@@ -1,6 +1,7 @@
 using System;
 using System.Web;
 using System.Web.Http;
+using Logger.Helpers;
 using Logger.Middleware;
 using TestApi.Helpers;
 
@@ -12,13 +13,25 @@ namespace TestAPI
         {
             UnityConfig.RegisterComponents();
             GlobalConfiguration.Configure(WebApiConfig.Register);
-            
-            // Setup unhandled error logging & filter
-            var accessLoggingModule = HttpContext.Current.ApplicationInstance.Modules.Get("AccessLoggingModule") as AccessLoggingModule;
-            if (accessLoggingModule != null)
+
+            // Setup access log filter
+            var context = HttpContext.Current.ApplicationInstance;
+            Func<HttpRequest, bool> filter = Filter;
+            context.Application.Add("Filter", filter);
+        }
+
+        protected void Application_Error()
+        {
+            try
             {
-                accessLoggingModule.LogUnhandledError = LogUnhandledError;
-                accessLoggingModule.Filter = Filter;
+                var ex = HttpContext.Current.Server.GetLastError();
+                var request = HttpContext.Current.Request;
+                var correlationId = (new HttpUtils().GetCorrelationId(request));
+                LogUnhandledError(ex, correlationId);
+            }
+            catch
+            {
+                // ignored
             }
         }
 

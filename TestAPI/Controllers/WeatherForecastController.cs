@@ -29,13 +29,13 @@ namespace TestApi.Controllers
             var rng = new Random();
             var correlationId = (new HttpUtils().GetCorrelationId(Request));
             _logHelper.LogInfo(rng.Next(), "", correlationId);
-            try
+            //try
             {
                 throw new Exception("test exception");
             }
-            catch (Exception ex)
+            //catch (Exception ex)
             {
-                _logHelper.LogError(ex, correlationId);
+                //_logHelper.LogError(ex, correlationId);
             }
 
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast

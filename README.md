@@ -95,19 +95,31 @@ Access logging is handled using an http module. Add this to your web.config:
 ```
 Add the following to global.asax.cs to setup unhandled exception logging and to filter access logging requests (to filter out health checks for example):
 ```C#
-	public class WebApiApplication : System.Web.HttpApplication
+    public class WebApiApplication : System.Web.HttpApplication
     {
         protected void Application_Start()
         {
             UnityConfig.RegisterComponents();
             GlobalConfiguration.Configure(WebApiConfig.Register);
-            
-            // Setup unhandled error logging & filter
-            var accessLoggingModule = HttpContext.Current.ApplicationInstance.Modules.Get("AccessLoggingModule") as AccessLoggingModule;
-            if (accessLoggingModule != null)
+
+            // Setup access log filter
+            var context = HttpContext.Current.ApplicationInstance;
+            Func<HttpRequest, bool> filter = Filter;
+            context.Application.Add("Filter", filter);
+        }
+
+        protected void Application_Error()
+        {
+            try
             {
-                accessLoggingModule.LogUnhandledError = LogUnhandledError;
-                accessLoggingModule.Filter = Filter;
+                var ex = HttpContext.Current.Server.GetLastError();
+                var request = HttpContext.Current.Request;
+                var correlationId = (new HttpUtils().GetCorrelationId(request));
+                LogUnhandledError(ex, correlationId);
+            }
+            catch
+            {
+                // ignored
             }
         }
 
@@ -122,5 +134,32 @@ Add the following to global.asax.cs to setup unhandled exception logging and to 
         {
             return request.Url.AbsolutePath.Contains("/health");
         }
-    }    
+    }
+```
+Add the following to WebApiConfig.cs to log Web API unhandled exceptions:
+```C#
+	public static void Register(HttpConfiguration config)
+	{
+		// Web API configuration and services
+
+		// Web API routes
+		config.MapHttpAttributeRoutes();
+
+		config.Routes.MapHttpRoute(
+			name: "DefaultApi",
+			routeTemplate: "api/{controller}/{id}",
+			defaults: new { id = RouteParameter.Optional }
+		);
+
+		// Register exception logging handler
+		var exceptionLoggingHandler = new ExceptionLoggingHandler(LogUnhandledError);
+		config.MessageHandlers.Add(exceptionLoggingHandler);
+	}
+
+	private static void LogUnhandledError(string errorMessage, string correlationId)
+	{
+		var structuredLogHelper =
+			GlobalConfiguration.Configuration.DependencyResolver.GetService(typeof(IStructuredLogHelper)) as IStructuredLogHelper;
+		structuredLogHelper?.LogError(errorMessage, correlationId);
+	}
 ```

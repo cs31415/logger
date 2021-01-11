@@ -11,17 +11,13 @@ namespace Logger.Middleware
     /// </summary>
     public class AccessLoggingModule: IHttpModule
     {
-        public Action<Exception, string> LogUnhandledError { get; set; }
         private readonly Stopwatch _timer = new Stopwatch();
         
         public void Init(HttpApplication context)
         {
             context.BeginRequest += BeginRequest;
             context.EndRequest += EndRequest;
-            context.Error += Context_Error;
         }
-
-        public Func<HttpRequest, bool> Filter { get; set; }
 
         public void Dispose()
         {
@@ -36,7 +32,8 @@ namespace Logger.Middleware
         {
             _timer.Stop();
             var request = HttpContext.Current.Request;
-            var filterRequest = Filter != null && !Filter(request);
+            var filter = HttpContext.Current.Application.Get("Filter") as Func<HttpRequest, bool>;
+            var filterRequest = filter != null && filter(request);
             if (!filterRequest)
             {
                 var response = HttpContext.Current.Response;
@@ -48,24 +45,6 @@ namespace Logger.Middleware
                 var builder = loggerFactory.GetAccessLogRecordBuilder();
                 var logger = loggerFactory.GetLogger(LoggerFactory.AccessLogName);
                 logger.LogInfo(builder.Build(string.Empty, request, response, responseTimeMs, correlationId));
-            }
-        }
-        
-        private void Context_Error(object sender, EventArgs e)
-        {
-            try 
-            {
-                if (LogUnhandledError != null)
-                {
-                    var ex = HttpContext.Current.Server.GetLastError();
-                    var request = HttpContext.Current.Request;
-                    var correlationId = (new HttpUtils().GetCorrelationId(request));
-                    LogUnhandledError(ex, correlationId);
-                }
-            }
-            catch
-            {
-                // ignored
             }
         }
     }
